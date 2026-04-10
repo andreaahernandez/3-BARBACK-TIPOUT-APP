@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>3 Barbacks Tip Split</title>
+
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .app {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .welcome {
+        background: #111;
+        color: white;
+        padding: 14px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+    }
+
+    input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        background: #1f2937;
+        color: white;
+        border: 1px solid #374151;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+
+    input[type="number"]:disabled {
+        background: #4b5563;
+        opacity: 0.6;
+    }
+
+    .barback-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .barback-row input[type="number"] {
+        width: 90px;
+        margin-bottom: 0;
+    }
+
+    button {
+        width: 100%;
+        background: #111827;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    .error {
+        color: #b91c1c;
+        margin-top: 10px;
+        font-size: 0.9rem;
+    }
+
+    .results {
+        margin-top: 20px;
+        padding-top: 12px;
+        border-top: 1px solid #ddd;
+    }
+
+    .results p {
+        font-size: 1rem;
+        margin: 6px 0;
+    }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+    <div class="welcome">
+        <strong>Hi! Hope you had a great shift!</strong><br>
+        Please select the three barbacks you worked with today, add their number of hours worked, and your total tipout.
+    </div>
+
+    <label>Total Barback Tipout ($)</label>
+    <input type="number" id="pool" placeholder="Enter total barback tipout" min="0" step="1">
+
+    <h2>Select Barbacks (up to 3)</h2>
+
+    <div class="barback-row">
+        <input type="checkbox" class="bb" data-name="Carl">
+        <label>Carl</label>
+        <input type="number" class="hrs" placeholder="hrs" disabled min="0" step="0.25">
+    </div>
+
+    <div class="barback-row">
+        <input type="checkbox" class="bb" data-name="Aaron">
+        <label>Aaron</label>
+        <input type="number" class="hrs" placeholder="hrs" disabled min="0" step="0.25">
+    </div>
+
+    <div class="barback-row">
+        <input type="checkbox" class="bb" data-name="Corey">
+        <label>Corey</label>
+        <input type="number" class="hrs" placeholder="hrs" disabled min="0" step="0.25">
+    </div>
+
+    <div class="barback-row">
+        <input type="checkbox" class="bb" data-name="Terris">
+        <label>Terris</label>
+        <input type="number" class="hrs" placeholder="hrs" disabled min="0" step="0.25">
+    </div>
+
+    <div class="barback-row">
+        <input type="checkbox" class="bb" data-name="Eric">
+        <label>Eric</label>
+        <input type="number" class="hrs" placeholder="hrs" disabled min="0" step="0.25">
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <button id="calc">Calculate</button>
+
+    <div class="results" id="results" style="display:none;">
+        <h2>Barback Payouts</h2>
+        <div id="out"></div>
+    </div>
+
+</div>
+
+<script>
+const checks = document.querySelectorAll(".bb");
+const calcBtn = document.getElementById("calc");
+const errorEl = document.getElementById("error");
+const results = document.getElementById("results");
+const out = document.getElementById("out");
+
+checks.forEach((chk, i) => {
+    chk.addEventListener("change", () => {
+        const hrs = chk.parentElement.querySelector(".hrs");
+        const selected = [...checks].filter(c => c.checked);
+
+        if (chk.checked && selected.length > 3) {
+            chk.checked = false;
+            errorEl.textContent = "You can only select up to 3 barbacks.";
+            setTimeout(() => errorEl.textContent = "", 2000);
+            return;
+        }
+
+        hrs.disabled = !chk.checked;
+        if (!chk.checked) hrs.value = "";
+    });
+});
+
+function roundDown(n) { return Math.floor(n); }
+function roundUp(n) { return Math.ceil(n); }
+
+calcBtn.addEventListener("click", () => {
+    errorEl.textContent = "";
+    results.style.display = "none";
+    out.innerHTML = "";
+
+    const pool = parseFloat(document.getElementById("pool").value);
+    if (!pool || pool <= 0) {
+        errorEl.textContent = "Enter a valid tipout amount.";
+        return;
+    }
+
+    const selected = [...checks].filter(c => c.checked);
+    if (selected.length === 0) {
+        errorEl.textContent = "Select at least one barback.";
+        return;
+    }
+
+    const barbacks = [];
+    let totalHours = 0;
+
+    selected.forEach(chk => {
+        const name = chk.dataset.name;
+        const hrs = parseFloat(chk.parentElement.querySelector(".hrs").value);
+
+        if (!hrs || hrs <= 0) {
+            errorEl.textContent = `Enter valid hours for ${name}.`;
+            return;
+        }
+
+        barbacks.push({ name, hrs });
+        totalHours += hrs;
+    });
+
+    if (totalHours <= 0) {
+        errorEl.textContent = "Total hours must be greater than zero.";
+        return;
+    }
+
+    const maxHrs = Math.max(...barbacks.map(b => b.hrs));
+    const countMax = barbacks.filter(b => b.hrs === maxHrs).length;
+
+    let payouts = [];
+    let remaining = pool;
+
+    barbacks.forEach((bb, idx) => {
+        let raw = pool * (bb.hrs / totalHours);
+        let amt;
+
+        if (countMax > 1) {
+            if (idx === barbacks.length - 1) {
+                amt = remaining;
+            } else {
+                amt = roundDown(raw);
+                remaining -= amt;
+            }
+        } else {
+            if (bb.hrs === maxHrs) {
+                amt = roundUp(raw);
+            } else {
+                amt = roundDown(raw);
+            }
+
+            remaining -= amt;
+
+            if (idx === barbacks.length - 1) {
+                amt += remaining;
+            }
+        }
+
+        payouts.push({ name: bb.name, amt });
+    });
+
+    payouts.forEach(p => {
+        const pEl = document.createElement("p");
+        pEl.textContent = `${p.name}: $${p.amt}`;
+        out.appendChild(pEl);
+    });
+
+    results.style.display = "block";
+});
+</script>
+
+</body>
+</html>
